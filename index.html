@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GPS KM - Marchas</title>
+    <style>
+        * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #DCF2FF; /* Cor de fundo original */
+            color: #535353;
+            display: flex;
+            justify-content: center; 
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            touch-action: none;
+            /* Garante que não haja transição suave */
+            transition: none !important;
+        }
+
+        #km-display {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #marcha-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #marcha-img {
+            /* TAMANHO FIXO EM PIXELS ABAIXO */
+            width: 30px; 
+            height: 30px;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+    <div id="km-display">0 KM</div>
+
+    <div id="marcha-container">
+        <img id="marcha-img" src="P.png" alt="Marcha">
+    </div>
+
+    <script>
+        const display = document.getElementById('km-display');
+        const marchaImg = document.getElementById('marcha-img');
+
+        // Função para verificar o horário e mudar a cor do fundo
+        function verificarHorario() {
+            const agora = new Date();
+            const hora = agora.getHours();
+            const minutos = agora.getMinutes();
+            const tempoAtual = hora * 60 + minutos; // Converte tudo para minutos para facilitar
+
+            const inicioNoite = 18 * 60;       // 18:00h em minutos
+            const fimNoite = 4 * 60 + 30;     // 04:30h em minutos
+
+            // Lógica: se for após as 18:00 OU antes das 04:30
+            if (tempoAtual >= inicioNoite || tempoAtual < fimNoite) {
+                document.body.style.backgroundColor = "black";
+            } else {
+                document.body.style.backgroundColor = "#DCF2FF";
+            }
+        }
+
+        // Executa a verificação imediatamente e a cada 1 segundo
+        verificarHorario();
+        setInterval(verificarHorario, 1000);
+
+        function atualizarInterface(km) {
+            let imagem = "P.png";
+
+            if (km < 5) {
+                imagem = "P.png";
+            } else if (km >= 5 && km <= 15) {
+                imagem = "1.png";
+            } else if (km >= 16 && km <= 25) {
+                imagem = "2.png";
+            } else if (km >= 26 && km <= 45) {
+                imagem = "3.png";
+            } else if (km >= 46 && km <= 70) {
+                imagem = "4.png";
+            } else if (km >= 71) {
+                imagem = "5.png";
+            }
+
+            display.innerText = `${km} KM`;
+            if (marchaImg.src.indexOf(imagem) === -1) {
+                marchaImg.src = imagem;
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && (e.key === 'c' || e.key === 'u' || e.key === 's')) {
+                e.preventDefault();
+            }
+        });
+
+        if ("geolocation" in navigator) {
+            navigator.geolocation.watchPosition((position) => {
+                const velocidadeMS = position.coords.speed;
+                let kmHora = 0;
+
+                if (velocidadeMS && velocidadeMS > 0) {
+                    kmHora = Math.floor(velocidadeMS * 3.6);
+                }
+                
+                atualizarInterface(kmHora);
+
+            }, (error) => {
+                console.error("Erro GPS:", error);
+            }, {
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 5000
+            });
+        }
+    </script>
+</body>
+</html>
