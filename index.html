@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GPS KM - Marchas</title>
+    <title>GPS KM</title>
     <style>
         * {
             -webkit-user-select: none;
@@ -16,8 +16,8 @@
         body {
             margin: 0;
             padding: 0;
-            background-color: #DCF2FF; /* Cor de fundo original */
-            color: #535353;
+            /* Transição suave ao mudar as cores */
+            transition: background-color 0.5s, color 0.5s;
             display: flex;
             justify-content: center; 
             align-items: center;
@@ -25,27 +25,14 @@
             width: 100vw;
             overflow: hidden;
             touch-action: none;
-            /* Garante que não haja transição suave */
-            transition: none !important;
         }
 
         #km-display {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        #marcha-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #marcha-img {
-            /* TAMANHO FIXO EM PIXELS ABAIXO */
-            width: 30px; 
-            height: 30px;
-            object-fit: contain;
+            font-size: 60px; 
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+            white-space: nowrap; 
+            text-align: center;
         }
     </style>
 </head>
@@ -53,58 +40,34 @@
 
     <div id="km-display">0 KM</div>
 
-    <div id="marcha-container">
-        <img id="marcha-img" src="P.png" alt="Marcha">
-    </div>
-
     <script>
         const display = document.getElementById('km-display');
-        const marchaImg = document.getElementById('marcha-img');
 
-        // Função para verificar o horário e mudar a cor do fundo
-        function verificarHorario() {
-            const agora = new Date();
-            const hora = agora.getHours();
-            const minutos = agora.getMinutes();
-            const tempoAtual = hora * 60 + minutos; // Converte tudo para minutos para facilitar
+        // Função para atualizar o tema baseado na hora
+        function updateTheme() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const totalMinutes = (hours * 60) + minutes;
 
-            const inicioNoite = 18 * 60;       // 18:00h em minutos
-            const fimNoite = 4 * 60 + 30;     // 04:30h em minutos
+            // 4:31h = (4 * 60) + 31 = 271 minutos
+            // 18:00h = 18 * 60 = 1080 minutos
+            const isDaytime = totalMinutes >= 271 && totalMinutes < 1080;
 
-            // Lógica: se for após as 18:00 OU antes das 04:30
-            if (tempoAtual >= inicioNoite || tempoAtual < fimNoite) {
-                document.body.style.backgroundColor = "black";
-            } else {
+            if (isDaytime) {
+                // Modo Dia (04:31 até 17:59)
                 document.body.style.backgroundColor = "#DCF2FF";
+                document.body.style.color = "#535353";
+            } else {
+                // Modo Noite (18:00 até 04:30)
+                document.body.style.backgroundColor = "black";
+                document.body.style.color = "white";
             }
         }
 
-        // Executa a verificação imediatamente e a cada 1 segundo
-        verificarHorario();
-        setInterval(verificarHorario, 1000);
-
-        function atualizarInterface(km) {
-            let imagem = "P.png";
-
-            if (km < 5) {
-                imagem = "P.png";
-            } else if (km >= 5 && km <= 15) {
-                imagem = "1.png";
-            } else if (km >= 16 && km <= 25) {
-                imagem = "2.png";
-            } else if (km >= 26 && km <= 45) {
-                imagem = "3.png";
-            } else if (km >= 46 && km <= 70) {
-                imagem = "4.png";
-            } else if (km >= 71) {
-                imagem = "5.png";
-            }
-
-            display.innerText = `${km} KM`;
-            if (marchaImg.src.indexOf(imagem) === -1) {
-                marchaImg.src = imagem;
-            }
-        }
+        // Executa ao carregar e verifica a cada 1 minuto
+        updateTheme();
+        setInterval(updateTheme, 60000);
 
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && (e.key === 'c' || e.key === 'u' || e.key === 's')) {
@@ -115,17 +78,19 @@
         if ("geolocation" in navigator) {
             navigator.geolocation.watchPosition((position) => {
                 const velocidadeMS = position.coords.speed;
-                let kmHora = 0;
 
                 if (velocidadeMS && velocidadeMS > 0) {
-                    kmHora = Math.floor(velocidadeMS * 3.6);
-                }
-                
-                atualizarInterface(kmHora);
+                    const kmHora = Math.floor(velocidadeMS * 3.6);
 
-            }, (error) => {
-                console.error("Erro GPS:", error);
-            }, {
+                    if (kmHora > 4) {
+                        display.innerText = `${kmHora} KM`;
+                    } else {
+                        display.innerText = "0 KM";
+                    }
+                } else {
+                    display.innerText = "0 KM";
+                }
+            }, null, {
                 enableHighAccuracy: true,
                 maximumAge: 0,
                 timeout: 5000
